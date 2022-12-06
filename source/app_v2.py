@@ -35,7 +35,7 @@ db = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()
 
 query_get_last_shift_today = """
-select * from TimeShits t
+select * from TimeShifts t
 where t.email='%s' and 
       t."start" >= '%s'::timestamp and 
       t."start" < current_date::timestamp + interval '1 day'
@@ -44,21 +44,21 @@ limit 1
 """
 
 query_insert_new_shift = """
-insert into timeshits
+insert into TimeShifts
 (email,"start") values ('%s','%s'::timestamp)
 """
 
 query_update_existing_shift = """
-update timeshits
+update TimeShifts
 set "end" = '%s'::timestamp
-where "start" = (select max("start") from timeshits
+where "start" = (select max("start") from TimeShifts
              where email = '%s' and 
                    "start" >= current_date::timestamp and
                    "start" < current_date::timestamp + interval '1 day')
 """
 
 query_get_last_shift_yesterday = """
-select *,current_date::timestamp from timeshits t 
+select *,current_date::timestamp from TimeShifts t 
 where t.email ='%s' and
       t."start" >= current_date::timestamp - interval '1 day' and 
       t."start" < current_date::timestamp and t."end" isnull 
@@ -67,19 +67,19 @@ limit 1
 """
 
 query_update_unclosed_yesterday_shift = """
-update timeshits
+update TimeShifts
 set "end" = current_date::timestamp - interval '1 second'
 where email = '%s' and 
       "start" = '%s'
 """
 
 query_move_and_close_yesterdays_shift_today = """
-insert into timeshits
+insert into TimeShifts
 (email,"start","end") values ('%s',current_date::timestamp, '%s'::timestamp)
 """
 
 query_get_monthly_records = """
-    select * from timeshits t 
+    select * from TimeShifts t 
     where email = '%s' and 
     extract('month' from "start") = extract('month' from current_date)
     """

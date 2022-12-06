@@ -34,19 +34,19 @@ db = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()
 
 query_get_daily_records = """
-select * from TimeShits t
+select * from TimeShifts t
 where t.email='%s' and 
       t."start" >= '%s'::timestamp and
       t."start" < '%s'::timestamp
 """
 
 query_insert_new_shift = """
-insert into TimeShits
+insert into TimeShifts
 (email, "start", "end") values ('%s','%s'::timestamp,'%s'::timestamp)
 """
 
 query_get_monthly_records = """
-    select * from TimeShits t 
+    select * from TimeShifts t 
     where email = '%s' and 
     extract('month' from "start") = extract('month' from current_date)
     """

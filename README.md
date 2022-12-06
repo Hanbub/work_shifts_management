@@ -11,3 +11,5 @@
     python client_v1.py add some_mail@mail.mail
 #### 2). python client_v2.py report email
     python client_v1.py report some_mail@mail.mail
+
+###### need to sleep a little bit
