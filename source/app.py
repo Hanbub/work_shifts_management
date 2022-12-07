@@ -93,7 +93,7 @@ async def add_or_merge_shift(in_start_dt, in_end_dt, in_email):
 @app.on_event("startup")
 async def startup():
     await db.connect()
-    await db.execute("""CREATE TABLE IF NOT EXISTS Timeshifts (email text, start timestamp, "end" timestamp)""")
+    await db.execute("""CREATE TABLE IF NOT EXISTS Timeshifts (email text, "start" timestamp, "end" timestamp)""")
 
 
 @app.on_event("shutdown")
