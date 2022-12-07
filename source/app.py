@@ -15,7 +15,6 @@ from io import StringIO, BytesIO
 import boto3
 
 custom_logger = logging.getLogger('custom_logger')
-APP_API_KEY = os.environ["APP_API_KEY"]
 DATABASE_URL = os.environ["DATABASE_URL"]
 EMAIL_API_KEY = os.environ["EMAIL_API_KEY"]
 EMAIL_DOMAIN_NAME = os.environ["EMAIL_DOMAIN_NAME"]
@@ -58,11 +57,15 @@ async def add_or_merge_shift(in_start_dt, in_end_dt, in_email):
     end_of_startday = in_start_dt.replace(hour=23, minute=59, second=59, microsecond=0)
     daily_rows = await db.fetch_all(query_get_daily_records % (in_email, start_of_startday, end_of_startday))
     daily_records = [dict(x) for x in daily_rows]
+    if len(daily_records) == 0:
+        await db.execute(query_insert_new_shift % (in_email, in_start_dt, in_end_dt))
     call_next_day_flag = False
     for daily_record in daily_records:
         start_record = daily_record['start']
         end_record = daily_record['end']
-        if (in_start_dt <= start_record and in_end_dt <= start_record) or \
+        if start_record == in_start_dt and in_end_dt == end_record:
+            custom_logger.info(f'record for this time corridor already exist')
+        elif (in_start_dt <= start_record and in_end_dt <= start_record) or \
                 (in_start_dt >= end_record and in_end_dt <= end_of_startday):
             await db.execute(query_insert_new_shift % (in_email, in_start_dt, in_end_dt))
             break
@@ -90,6 +93,7 @@ async def add_or_merge_shift(in_start_dt, in_end_dt, in_email):
 @app.on_event("startup")
 async def startup():
     await db.connect()
+    await db.execute("""CREATE TABLE IF NOT EXISTS Timeshifts (email text, start timestamp, "end" timestamp)""")
 
 
 @app.on_event("shutdown")
@@ -100,12 +104,6 @@ async def shutdown():
 @app.post('/shift/{email}')
 async def shift(email: Request):
     data = await email.json()
-    try:
-        apikey = data['API_KEY']
-        if apikey != APP_API_KEY:
-            raise Exception('WRONG_API_KEY')
-    except Exception as input_error:
-        JSONResponse(content={"error": str(input_error)})
     try:
         start_value = data['start']
         start_dt = datetime.utcfromtimestamp(start_value / 1e3)
@@ -124,59 +122,59 @@ async def shift(email: Request):
     except Exception as add_or_merge_shift_error:
         custom_logger.error('add_or_merge_shift_error')
         return JSONResponse(content={"error": str(add_or_merge_shift_error)})
-    return JSONResponse(content={"success": True})
+    return JSONResponse(content={"success": True,
+                                 "email": email_value,
+                                 "start": start_dt.isoformat(),
+                                 "end": end_dt.isoformat()})
 
 
 @app.post('/reports/monthly/{employee_email}')
 async def monthly_report(employee_email: Request):
-    data = await employee_email.json()
     try:
-        apikey = data['API_KEY']
-        if apikey != APP_API_KEY:
-            raise Exception('WRONG_API_KEY')
+        data = await employee_email.json()
         email_value = data['employee_email']
-    except Exception as input_error:
-        return JSONResponse(content={"error": str(input_error)})
-    report_generated_flag = False
-    report_timestamp = datetime.utcnow().replace(microsecond=0)
-
-    monthly_records = [dict(fetched_record) for fetched_record in
-                       await db.fetch_all(query_get_monthly_records % email_value) if fetched_record]
-    if len(monthly_records) > 0:
-        report_generated_flag = True
-    monthly_report_hashmap = {}
-    current_month = report_timestamp.month
-    current_year = report_timestamp.year
-    month_days_count = calendar.monthrange(report_timestamp.year, current_month)[1]
-    # fill hashmap with day in current month
-    for each_day in range(1, month_days_count + 1):
-        monthly_report_hashmap[each_day] = {'H': 0}
-    sum_hours = 0
-    # iterate over records
-    for record in monthly_records:
-        record_start = record['start']
-        record_end = record['end']
-        record_day = record['start'].day
-        record_hours = (record_end - record_start).total_seconds() / 3600
-        print(record_hours, record)
-        sum_hours += record_hours
-        monthly_report_hashmap[record_day]['H'] += record_hours
-    parsed_days = [f"D {z:02d} H {round(monthly_report_hashmap[z]['H'], 1):.1f}" for z in
-                   range(1, month_days_count + 1)]
-    dayly_rows_text = '\n'.join(parsed_days)
-    plain_text_output = f"Month #{current_month}\n" \
-                        f"Employee: {email_value}\n\n" \
-                        f"{dayly_rows_text}\n" \
-                        f"{'-' * 12}\n" \
-                        f"Total {round(sum_hours, 1)} hours"
-    response_obj = {
-        "plain_text": plain_text_output,
-        "report_generated_flag": report_generated_flag,
-        "s3_upload_success": False,
-        "s3_response": None,
-        "email_delivery_success": False,
-        "email_delivery_response": None
-    }
+        report_generated_flag = False
+        report_timestamp = datetime.utcnow().replace(microsecond=0)
+        monthly_records = [dict(fetched_record) for fetched_record in
+                           await db.fetch_all(query_get_monthly_records % email_value) if fetched_record]
+        if len(monthly_records) > 0:
+            report_generated_flag = True
+        monthly_report_hashmap = {}
+        current_month = report_timestamp.month
+        current_year = report_timestamp.year
+        month_days_count = calendar.monthrange(report_timestamp.year, current_month)[1]
+        # fill hashmap with day in current month
+        for each_day in range(1, month_days_count + 1):
+            monthly_report_hashmap[each_day] = {'H': 0}
+        sum_hours = 0
+        # iterate over records
+        for record in monthly_records:
+            record_start = record['start']
+            record_end = record['end']
+            record_day = record['start'].day
+            record_hours = (record_end - record_start).total_seconds() / 3600
+            print(record_hours, record)
+            sum_hours += record_hours
+            monthly_report_hashmap[record_day]['H'] += record_hours
+        parsed_days = [f"D {z:02d} H {round(monthly_report_hashmap[z]['H'], 1):.1f}" for z in
+                       range(1, month_days_count + 1)]
+        dayly_rows_text = '\n'.join(parsed_days)
+        plain_text_output = f"Month #{current_month}\n" \
+                            f"Employee: {email_value}\n\n" \
+                            f"{dayly_rows_text}\n" \
+                            f"{'-' * 12}\n" \
+                            f"Total {round(sum_hours, 1)} hours"
+        response_obj = {
+            "plain_text": plain_text_output,
+            "report_generated_flag": report_generated_flag,
+            "s3_upload_success": False,
+            "s3_response": None,
+            "email_delivery_success": False,
+            "email_delivery_response": None
+        }
+    except Exception as report_build_error:
+        custom_logger.error("report_build_error")
+        return JSONResponse(content={"error": "report_build_error"})
     # upload to s3
     try:
         output = StringIO()
@@ -207,7 +205,3 @@ async def monthly_report(employee_email: Request):
         response_obj.update({'email_delivery_success': False,
                              "email_delivery_response": email_delivery_error})
     return JSONResponse(content=response_obj)
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080, reload=False)

@@ -1,0 +1,72 @@
+{
+	"info": {
+		"_postman_id": "87b12c7b-ebc4-4248-a469-8b333cc5332c",
+		"name": "test2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14180918"
+	},
+	"item": [
+		{
+			"name": "add_shift",
+			"protocolProfileBehavior": {
+				"followOriginalHttpMethod": false
+			},
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\":\"testmail@gmail.com\",\r\n    \"start\":1670351029000,\r\n    \"end\":1670351030000\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8008/shift/email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8008",
+					"path": [
+						"shift",
+						"email"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "monthly_report",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"employee_email\":\"testmail@gmail.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8008/reports/monthly/employee_email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8008",
+					"path": [
+						"reports",
+						"monthly",
+						"employee_email"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

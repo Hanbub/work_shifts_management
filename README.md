@@ -1,15 +1,30 @@
 # work_shifts_management
-#### This is a server and client example that helps keep track of the employee's time spent at work
-## cli_v1 commands:
-#### 1).python client_v1.py add email start_shift end_shift 
-    python client_v1.py add some_mail@mail.mail 1659857134444 1659857145622
-#### 2). python client_v1.py report email
-    python client_v1.py report some_mail@mail.mail
+#### This is a FastAPI server with PostgreSQL and postman collection examples that tracks employee time on work, generate monthly report, save it on s3 and send over mailgan service  
 
-## cli_v2 commands:
-#### 1).python client_v2.py add email start_shift end_shift 
-    python client_v1.py add some_mail@mail.mail
-#### 2). python client_v2.py report email
-    python client_v1.py report some_mail@mail.mail
+## define docker-compose environment variables shuld be stored in from config.env
 
-###### need to sleep a little bit
+##prepare process
+    
+##building process
+    docker-compose build
+##running process
+    docker-compose up -d
+
+##Route add shift:
+    curl --location --request POST 'http://localhost:8008/shift/email' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "email":"testmail@gmail.com",
+        "start":1670351029000,
+        "end":1670351030000
+    }'
+
+##Route generate report, save on S3 and send email about it
+    curl --location --request POST 'http://localhost:8008/reports/monthly/employee_email' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "employee_email":"testmail@gmail.com"
+    }'
+
+##Postman collections example
+#### file test.postman_collection.js can be imported as collection to Postman workspace
