@@ -38,4 +38,4 @@ This is a FastAPI server with PostgreSQL and postman collection examples that tr
 
 # Postman collections example
 
-    file test.postman_collection.json can be imported as collection to Postman workspace
+file test.postman_collection.json can be imported as collection to Postman workspace
