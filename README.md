@@ -1,5 +1,5 @@
 # work_shifts_management
-This is a FastAPI server with PostgreSQL and postman collection examples that tracks employee time on work, generate monthly report, save it on s3 and send over mailgan service  
+This is a FastAPI server with PostgreSQL and postman collection examples that tracks employee time on work, generate monthly report, save it on s3 and send over mailgun service  
 
 ### environment variables should be stored in from config.env and read and exported by "export $(cat config.env | xargs)" command
 
